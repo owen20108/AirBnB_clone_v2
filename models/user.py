@@ -1,27 +1,25 @@
 #!/usr/bin/python3
-'''
-    Implementation of the User class which inherits from BaseModel
-'''
+"""This module defines a class User"""
+import models
 from models.base_model import BaseModel, Base
-from sqlalchemy import String, Column
+import sqlalchemy
+from sqlalchemy import Column, String, ForeignKey, Integer, Float
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-import os
 
 
 class User(BaseModel, Base):
-    '''
-        Definition of the User class
-    '''
+    """This class defines a user by various attributes"""
     __tablename__ = "users"
-    if os.getenv('HBNB_TYPE_STORAGE') == 'db':
-        email = Column(String(128), nullable=False)
-        password = Column(String(128), nullable=False)
-        first_name = Column(String(128), nullable=True)
-        last_name = Column(String(128), nullable=True)
-        places = relationship("Place", passive_deletes=True, backref="user")
-        reviews = relationship("Review", passive_deletes=True, backref="user")
-    else:
-        email = ""
-        password = ""
-        first_name = ""
-        last_name = ""
+    email = Column(String(128), nullable=False)
+    password = Column(String(128), nullable=False)
+    first_name = Column(String(128))
+    last_name = Column(String(128))
+    places = relationship('Place', backref='user', cascade="delete")
+    reviews = relationship("Review", backref="user", cascade="delete")
+
+    def __init__(self, *args, **kwargs):
+        """
+        inherit from base  and Basemodel init
+        """
+        super().__init__(*args, **kwargs)
