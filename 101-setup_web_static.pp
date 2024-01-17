@@ -1,28 +1,48 @@
-# puppet manifest preparing a server for static content deployment
-exec { 'apt-get-update':
-  command => '/usr/bin/env apt-get -y update',
+# Redo the task #0 but by using Puppet:
+
+exec {'apt-get-update':
+  command => '/usr/bin/apt-get update'
 }
--> exec {'b':
-  command => '/usr/bin/env apt-get -y install nginx',
+
+package {'apache2.2-common':
+  ensure  => 'absent',
+  require => Exec['apt-get-update']
 }
--> exec {'c':
-  command => '/usr/bin/env mkdir -p /data/web_static/releases/test/',
+
+package { 'nginx':
+  ensure  => 'installed',
+  require => Package['apache2.2-common']
 }
--> exec {'d':
-  command => '/usr/bin/env mkdir -p /data/web_static/shared/',
+
+service {'nginx':
+  ensure  =>  'running',
+  require => file_line['LOCATION SETUP']
 }
--> exec {'e':
-  command => '/usr/bin/env echo "Puppet x Holberton School" > /data/web_static/releases/test/index.html',
+
+file { ['/data', '/data/web_static', '/data/web_static/shared', '/data/web_static/releases', '/data/web_static/releases/test'] :
+  ensure  => 'directory',
+  owner   => 'ubuntu',
+  group   => 'ubuntu',
+  require =>  Package['nginx']
 }
--> exec {'f':
-  command => '/usr/bin/env ln -sf /data/web_static/releases/test /data/web_static/current',
+
+file { '/data/web_static/releases/test/index.html':
+  ensure  => 'present',
+  content => 'Hello AirBnb',
+  require =>  Package['nginx']
 }
--> exec {'h':
-  command => '/usr/bin/env sed -i "/listen 80 default_server/a location /hbnb_static/ { alias /data/web_static/current/;}" /etc/nginx/sites-available/default',
+
+file { '/data/web_static/current':
+  ensure => 'link',
+  target => '/data/web_static/releases/test',
+  force  => true
 }
--> exec {'i':
-  command => '/usr/bin/env service nginx restart',
-}
--> exec {'g':
-  command => '/usr/bin/env chown -R ubuntu:ubuntu /data',
+
+file_line { 'LOCATION SETUP ':
+  ensure  => 'present',
+  path    => '/etc/nginx/sites-enabled/default',
+  line    => 'location /hbnb_static/ { alias /data/web_static/current/; autoindex off; } location / { ',
+  match   => '^\s+location+',
+  require => Package['nginx'],
+  notify  => Service['nginx'],
 }
